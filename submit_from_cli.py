@@ -1,8 +1,9 @@
-import argparse, getopt, requests, os, sys, mechanize, time
+#!/usr/bin/python
+
+import argparse, getopt, requests, os, sys, mechanize, time, getpass
 from bs4 import BeautifulSoup as BS
 
 def signIn(br, userid, pwd):
-	print "Signing in...",
 	br.open('https://www.spoj.com/login')
 	br.select_form(nr = 0)
 	br.form['login_user'] = userid
@@ -14,12 +15,15 @@ def signIn(br, userid, pwd):
 	if len(err) > 0:
 		print('Invalid User name or password')
 		sys.exit(2)
-	print "Done"
+	print "Signed in."
 
-def submitSol(br, prob_code, path_toGlory):
+def submitSol(br, prob_code, lang, path_toGlory):
+	# dictionary of codes for languages
+	lang_dict = {'C++':'1', 'Python':'4', 'Java':'10', 'C':'11', 'Python3':'116'}
+
 	br.open('https://www.spoj.com/submit/' + prob_code)
 	br.select_form(nr = 0)
-	br.form['lang'] = ['1']
+	br.form['lang'] = [lang_dict[lang]]
 	br.form.add_file(open(path_toGlory), 'text/plain', path_toGlory)
 	print "Running judge...",
 	br.submit(name='submit')
@@ -32,26 +36,17 @@ def seeResult(br, userid):
 	html = BS(page.read(), 'html.parser')
 	props = html.tbody.tr
 	
+	status_code = {'11': 'Compilation Error', '12':'Runtime Error', '13':'Time Limit Exceeded', '14':'Wrong Answer', '15':'Accepted'}
+
 	st = props.select('td:nth-of-type(5)')
-	print 'Status:', st[0].strong.getText().encode("utf-8").strip()
+	print 'Status:', status_code[str(st[0].get('status'))]
 	tm = props.select('td:nth-of-type(6)')
 	print 'Time:', tm[0].a.getText().encode("utf-8").strip()
-	mem = props.select('td:nth-of-type(7)')
+	mem = props.select('td:nth-of-type(7)')	
 	print 'Memory:', mem[0].getText().encode("utf-8").strip()
 
 def main():
-	# prob_code, path_toGlory = get_arguments(sys.argv[1:])
-	prob_code = 'AGGRCOW'
-	path_toGlory = '/home/dattatreya/Desktop/C, CPP Files/AGGRCOW.cpp'
-	# default prob_code is name of the solution file
-	# submit_url = 'https://www.codechef.com/submit/' + prob_code.upper()
-	
-	userid = 'dattatreya_98'
-	pwd = 'Chiku@1998'
-
-	# dictionary of codes for languages
-	lang_dict = ['C++':'1', 'C':'11', 'Java':'10', 'Python':'4', 'Python3':'116']
-
+	prob_code = raw_input("Problem code: ")
 	# instantiate browser
 	br = mechanize.Browser(factory=mechanize.RobustFactory())
 	br.set_handle_equiv(True)
@@ -65,18 +60,26 @@ def main():
 	# checking if problem exists
 	submit_url = 'https://www.spoj.com/problems/' + prob_code
 	res = br.open(submit_url)
+	# print(res.geturl())
 	soup = BS(res.read(), 'html.parser')
-	err = soup.center.h1
-	if err != None:
-		print(err.getText())
+	pr = soup.select('#problem-name')
+	if pr == []:
+		print("Wrong problem code!")
 		sys.exit(2)
-
+	print "Found problem statement."
+	
+	lang = raw_input("Language: ")
+	
 	# sign in with SPOJ account
+	userid = raw_input("User name: ")
+	pwd = getpass.getpass("Password: ")
 	signIn(br, userid, pwd)
 
 	# submit the solution
 	# all problem codes on spoj are in upper characters
-	submitSol(br, prob_code.upper(), path_toGlory)
+	path_toGlory = raw_input("Enter full filepath: ")
+	
+	submitSol(br, prob_code.upper(), lang, path_toGlory)
 
 	# show result status
 	seeResult(br, userid)
