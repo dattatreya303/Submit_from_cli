@@ -46,6 +46,12 @@ def seeResult(br, userid):
 	print 'Memory:', mem[0].getText().encode("utf-8").strip()
 
 def main():
+	path_toGlory = str(sys.argv[1:][0])
+	if not os.path.isfile(path_toGlory):
+		print path_toGlory
+		print "File doesn't exist."
+		sys.exit(2)
+	
 	prob_code = raw_input("Problem code: ")
 	# instantiate browser
 	br = mechanize.Browser(factory=mechanize.RobustFactory())
@@ -77,12 +83,14 @@ def main():
 
 	# submit the solution
 	# all problem codes on spoj are in upper characters
-	path_toGlory = raw_input("Enter full filepath: ")
-	
 	submitSol(br, prob_code.upper(), lang, path_toGlory)
 
 	# show result status
 	seeResult(br, userid)
 
 if __name__ == "__main__":
-	main()
+	try:
+		main()
+	except KeyboardInterrupt:
+		print '\n'
+		sys.exit(2)
